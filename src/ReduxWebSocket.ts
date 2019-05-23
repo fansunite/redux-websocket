@@ -44,6 +44,9 @@ export default class ReduxWebSocket {
   // Keep track of if the WebSocket connection has ever successfully opened.
   private hasOpened = false;
 
+  // Keep track of an existing reconnect attempt
+  private alreadyConnected = false;
+
   /**
    * Constructor
    * @constructor
@@ -66,15 +69,16 @@ export default class ReduxWebSocket {
     const { prefix } = this.options;
 
     this.lastSocketUrl = payload.url;
-    this.websocket = new WebSocket(payload.url);
-
-    this.websocket.addEventListener('close', event => this.handleClose(dispatch, prefix, event));
-    this.websocket.addEventListener('error', () => this.handleError(dispatch, prefix));
-    this.websocket.addEventListener('open', (event) => {
-      console.log('hello i am open');
-      this.handleOpen(dispatch, prefix, this.options.onOpen, event);
-    });
-    this.websocket.addEventListener('message', event => this.handleMessage(dispatch, prefix, event));
+    if (!this.alreadyConnected) {
+      this.websocket = new WebSocket(payload.url);
+      this.websocket.addEventListener('close', event => this.handleClose(dispatch, prefix, event));
+      this.websocket.addEventListener('error', () => this.handleError(dispatch, prefix));
+      this.websocket.addEventListener('open', (event) => {
+        this.alreadyConnected = true;
+        this.handleOpen(dispatch, prefix, this.options.onOpen, event);
+      });
+      this.websocket.addEventListener('message', event => this.handleMessage(dispatch, prefix, event));
+    }
   }
 
   /**
@@ -134,8 +138,9 @@ export default class ReduxWebSocket {
     // Only attempt to reconnect if the connection has ever successfully opened.
     // This prevents ongoing reconnect loops to connections that have not
     // successfully opened before, such as net::ERR_CONNECTION_REFUSED errors.
-    if (this.hasOpened) {
+    if (this.hasOpened && this.alreadyConnected) {
       this.handleBrokenConnection(dispatch);
+      this.alreadyConnected = false;
     }
   }
 
