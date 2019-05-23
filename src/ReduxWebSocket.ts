@@ -71,6 +71,7 @@ export default class ReduxWebSocket {
     this.websocket.addEventListener('close', event => this.handleClose(dispatch, prefix, event));
     this.websocket.addEventListener('error', () => this.handleError(dispatch, prefix));
     this.websocket.addEventListener('open', (event) => {
+      console.log('hello i am open');
       this.handleOpen(dispatch, prefix, this.options.onOpen, event);
     });
     this.websocket.addEventListener('message', event => this.handleMessage(dispatch, prefix, event));
